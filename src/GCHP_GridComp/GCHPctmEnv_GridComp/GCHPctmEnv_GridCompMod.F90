@@ -1031,7 +1031,7 @@ module GCHPctmEnv_GridComp
       integer, parameter  :: num_levels = 72
       integer, parameter  :: num_edges = num_levels + 1
       real(r8)            :: AP(num_edges), BP(num_edges)
-      real(r8)            :: PEdge_Bot, PEdge_Top, PSDry
+      real(r8)            :: PEdge_Bot, PEdge_Top
       integer             :: I, J, L, is, ie, js, je, lm
 
       !================================
@@ -1101,7 +1101,7 @@ module GCHPctmEnv_GridComp
          ie = ubound(PS,1)
          js = lbound(PS,2)
          je = ubound(PS,2)
-         LM = size  (SPHU,3)
+         LM = size(SPHU,3)+1
 
          if ( topDownMet ) then
 
@@ -1109,20 +1109,14 @@ module GCHPctmEnv_GridComp
            do I=is,ie
 
               ! Start with TOA pressure
-              PSDry = AP(LM+1)
+              PLE(I,J,LM) = AP(LM)
 
-              ! Stack up dry delta-P to get surface dry pressure
               ! Vertically flip humidity if using top-down meteorology (raw GMAO files)
-              do L=1,LM
-                 PEdge_Bot = AP(L  ) + ( BP(L  ) * dble(PS(I,J)) )
-                 PEdge_Top = AP(L+1) + ( BP(L+1) * dble(PS(I,J)) )
-                 PSDry = PSDry &
-                         + ( ( PEdge_Bot - Pedge_Top ) * ( 1.d0 - SPHU(I,J,LM-L+1) ) )
-              enddo
-
-              ! Work back up from the surface to get dry level edges
-              do L=1,LM+1
-                 PLE(I,J,L) = AP(L) + ( BP(L) * dble(PSDry) )
+              do L=1,LM-1
+                 PEdge_Bot = AP(LM-L) + ( BP(LM-L) * dble(PS(I,J)) )
+                 PEdge_Top = AP(LM-L+1) + ( BP(LM-L+1) * dble(PS(I,J)) )
+                 PLE(I,J,LM-L) = PLE(I,J,LM-L+1) &
+                         + ( ( PEdge_Bot - PEdge_Top ) * ( 1.d0 - SPHU(I,J,L) ) )
               enddo
 
            enddo
@@ -1134,19 +1128,14 @@ module GCHPctmEnv_GridComp
             do I=is,ie
 
                ! Start with TOA pressure
-               PSDry = AP(LM+1)
+               PLE(I,J,LM) = AP(LM)
 
                ! Stack up dry delta-P to get surface dry pressure
-               do L=1,LM
-                  PEdge_Bot = AP(L  ) + ( BP(L  ) * dble(PS(I,J)) )
-                  PEdge_Top = AP(L+1) + ( BP(L+1) * dble(PS(I,J)) )
-                  PSDry = PSDry &
-                          + ( ( PEdge_Bot - Pedge_Top ) * ( 1.d0 - SPHU(I,J,L) ) )
-               enddo
-
-               ! Work back up from the surface to get dry level edges
-               do L=1,LM+1
-                  PLE(I,J,L) = AP(L) + ( BP(L) * dble(PSDry) )
+               do L=1,LM-1
+                  PEdge_Bot = AP(LM-L) + ( BP(LM-L) * dble(PS(I,J)) )
+                  PEdge_Top = AP(LM-L+1) + ( BP(LM-L+1) * dble(PS(I,J)) )
+                  PLE(I,J,LM-L) = PLE(I,J,LM-L+1) &
+                        + ( ( PEdge_Bot - PEdge_Top ) * ( 1.d0 - SPHU(I,J,LM-L) ) )
                enddo
             enddo
             enddo
@@ -1158,5 +1147,4 @@ module GCHPctmEnv_GridComp
 
    end subroutine calculate_ple
 !EOC
-   
 end module GCHPctmEnv_GridComp
