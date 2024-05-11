@@ -206,7 +206,8 @@ contains
                                                   'PLE1   ',   &
                                                   'DryPLE0',   &
                                                   'DryPLE1',   &
-                                                  'SPHU0  '/), &
+                                                  'SPHU0  ',   &
+                                                  'SPHU1  '/), &
                                   DST_ID = ADV,                &
                                   SRC_ID = ECTM,               &
                                   __RC__ )
