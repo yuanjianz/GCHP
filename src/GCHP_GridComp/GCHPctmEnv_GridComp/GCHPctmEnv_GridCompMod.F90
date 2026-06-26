@@ -254,6 +254,15 @@ module GCHPctmEnv_GridComp
                               RC=STATUS)
       _VERIFY(STATUS)
       call MAPL_AddExportSpec(gc, &
+                              SHORT_NAME='SPHU1', &
+                              LONG_NAME='specific_humidity_after_advection', &
+                              UNITS='kg kg-1', &
+                              PRECISION=ESMF_KIND_R8, &
+                              DIMS=MAPL_DimsHorzVert, &
+                              VLOCATION=MAPL_VLocationCenter, &
+                              RC=STATUS)
+      _VERIFY(STATUS)
+      call MAPL_AddExportSpec(gc, &
                               SHORT_NAME='PLE0', &
                               LONG_NAME='pressure_at_layer_edges_before_advection',&
                               UNITS='Pa', &
@@ -878,7 +887,9 @@ module GCHPctmEnv_GridComp
 !
       integer :: STATUS
       real,     pointer, dimension(:,:,:) :: SPHU1_IMPORT => null()
+      real,     pointer, dimension(:,:,:) :: SPHU2_IMPORT => null()
       real(r8), pointer, dimension(:,:,:) :: SPHU0_EXPORT => null()
+      real(r8), pointer, dimension(:,:,:) :: SPHU1_EXPORT => null()
       real(r4), pointer, dimension(:,:,:) :: SPHU0_R4_EXPORT => null()
 
       !================================
@@ -887,16 +898,21 @@ module GCHPctmEnv_GridComp
 
       ! NB: Input at ExtData is SPHU1 (before) and SPHU2 (after)
       !     Input at FV3 is SPHU0 (before) and SPHU1 (after)
-      call lgr%debug('Preparing FV3 input SPHU0')
+      call lgr%debug('Preparing FV3 input SPHU0 and SPHU1')
 
       ! Get imports (real4)
       call MAPL_GetPointer(IMPORT, SPHU1_IMPORT, 'SPHU1', RC=STATUS)
+      _VERIFY(STATUS)
+      call MAPL_GetPointer(IMPORT, SPHU2_IMPORT, 'SPHU2', RC=STATUS)
       _VERIFY(STATUS)
 
       ! Get exports (real8) and initialize to 0
       call MAPL_GetPointer(EXPORT, SPHU0_EXPORT, 'SPHU0', RC=STATUS)
       _VERIFY(STATUS)
       SPHU0_EXPORT(:,:,:) = 0.0d0
+      call MAPL_GetPointer(EXPORT, SPHU1_EXPORT, 'SPHU1', RC=STATUS)
+      _VERIFY(STATUS)
+      SPHU1_EXPORT(:,:,:) = 0.0d0
 
       ! Set number of levels
       LM = size(SPHU1_IMPORT, 3)
@@ -905,8 +921,10 @@ module GCHPctmEnv_GridComp
       ! as top-down (level 1 corresponds to TOA)
       if (met_humidity_is_top_down) then
          SPHU0_EXPORT = dble(SPHU1_IMPORT)
+         SPHU1_EXPORT = dble(SPHU2_IMPORT)
       else
          SPHU0_EXPORT(:,:,:) = dble(SPHU1_IMPORT(:,:,LM:1:-1))
+         SPHU1_EXPORT(:,:,:) = dble(SPHU2_IMPORT(:,:,LM:1:-1))
       end if
 
       ! R4 exports for diagnostics
